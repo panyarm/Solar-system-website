@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SOLARIS // 3D Solar System Scroll Odyssey</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&family=Orbitron:wght@500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="css/style.css" />
+  <script type="importmap">
+  {
+    "imports": {
+      "three": "https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js",
+      "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/",
+      "gsap": "https://cdn.jsdelivr.net/npm/gsap@3.12.5/index.js",
+      "gsap/ScrollTrigger": "https://cdn.jsdelivr.net/npm/gsap@3.12.5/ScrollTrigger.js",
+      "lenis": "https://cdn.jsdelivr.net/npm/lenis@1.1.14/dist/lenis.mjs"
+    }
+  }
+  </script>
+</head>
+<body>
+  <!-- 3D WebGL Canvas -->
+  <canvas id="scene-canvas" aria-label="3D Solar System Interactive View"></canvas>
+
+  <!-- Loading Overlay -->
+  <div id="loading-screen" class="loading-screen">
+    <div class="loading-inner">
+      <div class="loading-orbit">
+        <div class="loading-sun"></div>
+        <div class="loading-planet"></div>
+      </div>
+      <div class="loading-kicker">EPHEMERIS TELEMETRY ENGINE</div>
+      <h1 class="loading-title">SOLARIS ODYSSEY</h1>
+      <p id="loading-status" class="loading-status">Synthesizing planetary surfaces &amp; Keplerian orbits...</p>
+      <div class="loading-bar-track">
+        <div id="loading-bar-fill" class="loading-bar-fill"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Top Telemetry Bar -->
+  <header class="hud-header">
+    <div class="brand-block">
+      <span class="brand-dot"></span>
+      <div>
+        <div class="brand-title">SOLARIS // 3D TOUR</div>
+        <div class="brand-subtitle">REAL-TIME KEPLERIAN EPHEMERIS</div>
+      </div>
+    </div>
+
+    <div class="telemetry-strip">
+      <div class="telemetry-item">
+        <span class="telemetry-label">EPOCH (UTC)</span>
+        <span id="hud-utc-time" class="telemetry-value">----</span>
+      </div>
+      <div class="telemetry-item">
+        <span class="telemetry-label">STOP</span>
+        <span id="hud-stop-index" class="telemetry-value">01 / 31</span>
+      </div>
+      <div class="telemetry-item">
+        <span class="telemetry-label">EARTH DISTANCE</span>
+        <span id="hud-top-distance" class="telemetry-value accent">0 km</span>
+      </div>
+      <div class="telemetry-item scale-badge" title="Sizes and orbital distances in the 3D viewport are logarithmically compressed for visual navigation. All numerical telemetry reflects true astronomical measurements.">
+        <span class="badge-icon">◎</span>
+        <span>LOGARITHMIC 3D SCALE · TRUE TELEMETRY</span>
+      </div>
+    </div>
+
+    <div class="hud-actions">
+      <button id="btn-prev-stop" class="hud-btn" type="button" title="Previous Celestial Body (Up / Left Arrow)">
+        <span>← PREV</span>
+      </button>
+      <button id="btn-next-stop" class="hud-btn" type="button" title="Next Celestial Body (Down / Right Arrow)">
+        <span>NEXT →</span>
+      </button>
+      <button id="btn-toggle-orbits" class="hud-btn active" type="button" title="Toggle Orbital Paths">
+        <span>ORBITS</span>
+      </button>
+    </div>
+  </header>
+
+  <!-- Left / Main Celestial Info Card -->
+  <aside id="info-panel" class="info-panel" aria-live="polite">
+    <div class="panel-header">
+      <div class="panel-classification">
+        <span id="body-badge" class="body-badge">STAR</span>
+        <span id="body-parent" class="body-parent">SOLAR SYSTEM CENTER</span>
+      </div>
+      <h1 id="body-name" class="body-name">The Sun</h1>
+      <p id="body-tagline" class="body-tagline">G2V Main-Sequence Yellow Dwarf Star</p>
+    </div>
+
+    <!-- Real-Time Distance from Earth Highlight Box -->
+    <div class="distance-card">
+      <div class="distance-card-header">
+        <span class="distance-title">
+          <span class="pulse-indicator"></span>
+          DISTANCE FROM EARTH (LIVE)
+        </span>
+        <span id="distance-au" class="distance-au">1.000 AU</span>
+      </div>
+      <div id="distance-km" class="distance-km">149,597,870 km</div>
+      <div class="distance-subgrid">
+        <div class="distance-subitem">
+          <span class="sub-label">LIGHT TRAVEL TIME</span>
+          <span id="distance-light" class="sub-value">8m 19.0s</span>
+        </div>
+        <div class="distance-subitem">
+          <span class="sub-label">MIN / MAX RANGE</span>
+          <span id="distance-range" class="sub-value">147.1M – 152.1M km</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Description -->
+    <p id="body-description" class="body-description">
+      Scroll down to embark on a guided 3D tour across every planet, major moon, and dwarf planet in our Solar System.
+    </p>
+
+    <!-- Physical & Orbital Metrics Grid -->
+    <div class="metrics-grid">
+      <div class="metric-box">
+        <span class="metric-label">DIAMETER</span>
+        <span id="metric-diameter" class="metric-value">1,392,700 km</span>
+      </div>
+      <div class="metric-box">
+        <span class="metric-label">MASS</span>
+        <span id="metric-mass" class="metric-value">1.989 × 10³⁰ kg</span>
+      </div>
+      <div class="metric-box">
+        <span class="metric-label">SURFACE GRAVITY</span>
+        <span id="metric-gravity" class="metric-value">274.0 m/s²</span>
+      </div>
+      <div class="metric-box">
+        <span class="metric-label">TEMPERATURE</span>
+        <span id="metric-temp" class="metric-value">5,500 °C</span>
+      </div>
+      <div class="metric-box">
+        <span class="metric-label">ROTATION PERIOD</span>
+        <span id="metric-day" class="metric-value">25.05 days</span>
+      </div>
+      <div class="metric-box">
+        <span class="metric-label">ORBITAL PERIOD</span>
+        <span id="metric-year" class="metric-value">230M years</span>
+      </div>
+      <div class="metric-box">
+        <span class="metric-label">KNOWN MOONS</span>
+        <span id="metric-moons" class="metric-value">8 Planets</span>
+      </div>
+      <div class="metric-box">
+        <span class="metric-label">SEMI-MAJOR AXIS</span>
+        <span id="metric-orbit-dist" class="metric-value">0.00 AU</span>
+      </div>
+    </div>
+
+    <!-- Notable Facts -->
+    <div class="facts-section">
+      <div class="facts-header">KEY SCIENTIFIC HIGHLIGHTS</div>
+      <ul id="body-facts" class="facts-list"></ul>
+    </div>
+
+    <!-- Moon Quick-Jump Chips (shown when viewing a planet with moons in tour) -->
+    <div id="moons-jump-container" class="moons-jump-container hidden">
+      <div class="facts-header">TOURABLE SATELLITES IN THIS SYSTEM</div>
+      <div id="moons-jump-list" class="moons-jump-list"></div>
+    </div>
+  </aside>
+
+  <!-- Right Side Navigation Timeline -->
+  <nav id="tour-nav" class="tour-nav" aria-label="Solar System Tour Stops">
+    <div class="tour-nav-progress">
+      <div id="tour-nav-bar" class="tour-nav-bar"></div>
+    </div>
+    <ul id="tour-nav-list" class="tour-nav-list"></ul>
+  </nav>
+
+  <!-- Bottom Scroll Prompt -->
+  <div id="scroll-prompt" class="scroll-prompt">
+    <div class="mouse-icon">
+      <div class="mouse-wheel"></div>
+    </div>
+    <div class="scroll-prompt-text">
+      <strong>SCROLL DOWN TO FLY THROUGH THE SOLAR SYSTEM</strong>
+      <span>Mouse Wheel · Trackpad · Arrow Keys · Drag Orbit to Inspect</span>
+    </div>
+  </div>
+
+  <!-- Scroll Spacer Track (Drives Camera Progress) -->
+  <main id="scroll-track" class="scroll-track" aria-hidden="true"></main>
+
+  <script type="module" src="js/main.js"></script>
+</body>
+</html>
